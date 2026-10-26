@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --background: 240 10% 3.9%;
+      --foreground: 0 0% 98%;
+      --card: 240 10% 4.9%;
+      --card-foreground: 0 0% 98%;
+      --primary: 0 0% 98%;
+      --primary-foreground: 240 5.9% 10%;
+      --secondary: 240 3.7% 15.9%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 3.7% 15.9%;
+      --muted-foreground: 240 5% 64.9%;
+      --border: 240 3.7% 15.9%;
+      --input: 240 3.7% 15.9%;
+      --ring: 240 4.9% 83.9%;
+      --radius: 0rem;
+    }
+    *, *::before, *::after {
+      border-radius: 0px !important;
+    }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: hsl(var(--foreground));
+      margin: 0;
+      padding: 12px;
+      background: transparent;
+      box-sizing: border-box;
+      max-width: 600px;
+    }
+    .shadcn-card {
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 0px;
+      padding: 16px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+    }
+    .shadcn-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .shadcn-title {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .shadcn-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 0px;
+      background: hsl(var(--secondary));
+      border: 1px solid hsl(var(--border));
+      color: hsl(var(--foreground));
+      font-weight: 500;
+      font-family: monospace;
+    }
+    .shadcn-gauges-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .shadcn-gauge-card {
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      padding: 8px 4px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .gauge-title {
+      font-family: monospace;
+      font-size: 9px;
+      color: hsl(var(--muted-foreground));
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .gauge-svg-wrap {
+      width: 100px;
+      height: 74px;
+    }
+    .shadcn-input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .shadcn-input {
+      flex: 1;
+      height: 36px;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--input));
+      border-radius: 0px;
+      padding: 0 12px;
+      color: hsl(var(--foreground));
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .shadcn-input:focus {
+      border-color: hsl(var(--ring));
+    }
+    .shadcn-btn-primary {
+      height: 36px;
+      padding: 0 14px;
+      background: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+      border: none;
+      border-radius: 0px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s ease;
+    }
+    .shadcn-btn-primary:hover {
+      opacity: 0.9;
+    }
+    .shadcn-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .shadcn-btn-outline {
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      border-radius: 0px;
+      color: hsl(var(--foreground));
+      padding: 7px 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .shadcn-btn-outline:hover {
+      background: hsl(var(--secondary));
+    }
+    .shadcn-feedback {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 0px;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      font-size: 11px;
+      color: hsl(var(--muted-foreground));
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="shadcn-card">
+    <div class="shadcn-header">
+      <div class="shadcn-title">
+        <span>System Controller &bull; gauge-ui</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div style="display: inline-flex; border: 1px solid hsl(var(--border)); background: hsl(var(--muted)); padding: 1px;" title="Toggle View Mode (Gauges / Text)">
+          <button onclick="setWidgetMode('graphical')" id="w-btn-g" title="Gauges View" style="padding: 3px 5px; border: none; background: hsl(var(--background)); color: hsl(var(--foreground)); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+          </button>
+          <button onclick="setWidgetMode('text')" id="w-btn-t" title="Text View" style="padding: 3px 5px; border: none; background: transparent; color: hsl(var(--muted-foreground)); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="shadcn-badge" id="w-status">ONLINE (Port 8080)</div>
+      </div>
+    </div>
+
+    <!-- Live Animated Gauges Strip (gauge-ui.dev) -->
+    <div id="w-gauges-view" class="shadcn-gauges-grid">
+      <div class="shadcn-gauge-card">
+        <div class="gauge-title">GPU Temp</div>
+        <div id="w-gauge-gpu" class="gauge-svg-wrap"></div>
+      </div>
+      <div class="shadcn-gauge-card">
+        <div class="gauge-title">CPU Load</div>
+        <div id="w-gauge-cpu" class="gauge-svg-wrap"></div>
+      </div>
+      <div class="shadcn-gauge-card">
+        <div class="gauge-title">RAM Used</div>
+        <div id="w-gauge-ram" class="gauge-svg-wrap"></div>
+      </div>
+      <div class="shadcn-gauge-card">
+        <div class="gauge-title">Battery</div>
+        <div id="w-gauge-bat" class="gauge-svg-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Normal Text View (Like Before) -->
+    <div id="w-text-view" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+      <div style="background: hsl(var(--background)); border: 1px solid hsl(var(--border)); padding: 6px 8px; text-align: center; font-family: monospace; font-size: 11px;" id="v-gpu">GPU: RTX 4070</div>
+      <div style="background: hsl(var(--background)); border: 1px solid hsl(var(--border)); padding: 6px 8px; text-align: center; font-family: monospace; font-size: 11px;" id="v-cpu">CPU: Load --%</div>
+      <div style="background: hsl(var(--background)); border: 1px solid hsl(var(--border)); padding: 6px 8px; text-align: center; font-family: monospace; font-size: 11px;" id="v-ram">RAM: --%</div>
+      <div style="background: hsl(var(--background)); border: 1px solid hsl(var(--border)); padding: 6px 8px; text-align: center; font-family: monospace; font-size: 11px;" id="v-bat">BAT: --%</div>
+    </div>
+
+    <!-- Input Box -->
+    <div class="shadcn-input-group">
+      <input type="text" id="w-input" class="shadcn-input" placeholder="Type command (e.g. 'Turn up brightness', 'Mute audio')...">
+      <button class="shadcn-btn-primary" onclick="sendCmd()">Execute</button>
+    </div>
+
+    <!-- shadcn Button Grid -->
+    <div class="shadcn-grid">
+      <button class="shadcn-btn-outline" onclick="trigger('volume_up')">🔊 Vol +10%</button>
+      <button class="shadcn-btn-outline" onclick="trigger('volume_down')">🔉 Vol -10%</button>
+      <button class="shadcn-btn-outline" onclick="trigger('mute_toggle')">🔇 Mute</button>
+      <button class="shadcn-btn-outline" onclick="trigger('mic_mute_toggle')">🎙️ Mic Mute</button>
+
+      <button class="shadcn-btn-outline" onclick="trigger('brightness_up')">☀️ Bright +10%</button>
+      <button class="shadcn-btn-outline" onclick="trigger('brightness_down')">🔅 Bright -10%</button>
+      <button class="shadcn-btn-outline" onclick="trigger('night_light_toggle')">🌙 Night Light</button>
+      <button class="shadcn-btn-outline" onclick="trigger('lock_screen')">🔒 Lock Screen</button>
+
+      <button class="shadcn-btn-outline" onclick="trigger('play_pause')">⏯️ Play/Pause</button>
+      <button class="shadcn-btn-outline" onclick="cmd('What time is it right now')">⏰ Time</button>
+      <button class="shadcn-btn-outline" onclick="trigger('launch_chrome')">🌐 Chrome</button>
+      <button class="shadcn-btn-outline" onclick="trigger('launch_terminal')">💻 Terminal</button>
+    </div>
+
+    <div class="shadcn-feedback" id="w-feedback" style="display: flex; align-items: center; gap: 8px; min-height: 34px;">
+      <span id="w-spinner" style="display: inline-flex; align-items: center; flex-shrink: 0;"></span>
+      <span id="w-feedback-text" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">System Controller active &bull; Full dashboard at http://localhost:8080</span>
+    </div>
+  </div>
+
+  <script>
+    const GaugeMath = {
+      clamp: (v, min, max) => Math.min(max, Math.max(min, v)),
+      degToRad: (d) => (d * Math.PI) / 180,
+      round: (n) => Math.round(n * 1000) / 1000,
+      fmt: (n) => Number(n.toFixed(3)).toString(),
+      polar(radius, angle) {
+        const theta = this.degToRad(angle + 90);
+        return {
+          x: this.round(radius * Math.cos(theta)),
+          y: this.round(radius * Math.sin(theta))
+        };
+      },
+      valueToAngle(value, min, max, startAngle, endAngle) {
+        const span = max - min;
+        const t = span === 0 ? 0 : (this.clamp(value, min, max) - min) / span;
+        return startAngle + t * (endAngle - startAngle);
+      },
+      arcPath(radius, from, to) {
+        const sweep = Math.min(to - from, 360);
+        if (sweep <= 0 || radius <= 0) return "";
+        const pieces = Math.max(1, Math.ceil(sweep / 180));
+        const step = sweep / pieces;
+        const start = this.polar(radius, from);
+        const parts = [`M ${this.fmt(start.x)} ${this.fmt(start.y)}`];
+        for (let i = 1; i <= pieces; i++) {
+          const p = this.polar(radius, from + step * i);
+          parts.push(`A ${this.fmt(radius)} ${this.fmt(radius)} 0 0 1 ${this.fmt(p.x)} ${this.fmt(p.y)}`);
+        }
+        return parts.join(" ");
+      },
+      stepValues(min, max, intervals) {
+        const n = Math.max(1, Math.round(intervals));
+        return Array.from({ length: n + 1 }, (_, i) => min + ((max - min) * i) / n);
+      },
+      springPhysics(visualDuration = 0.5, bounce = 0.12) {
+        const root = (2 * Math.PI) / (visualDuration * 1.2);
+        const stiffness = root * root;
+        const ratio = Math.min(1, Math.max(0.05, 1 - bounce));
+        return { stiffness, damping: 2 * ratio * Math.sqrt(stiffness), mass: 1 };
+      },
+      stepSpring(state, target, physics, dt, precision) {
+        const SUBSTEP = 1 / 240;
+        let { value, velocity } = state;
+        let remaining = Math.min(dt, 0.064);
+        while (remaining > 0) {
+          const h = Math.min(SUBSTEP, remaining);
+          const force = -physics.stiffness * (value - target) - physics.damping * velocity;
+          velocity += (force / physics.mass) * h;
+          value += velocity * h;
+          remaining -= h;
+        }
+        const done = Math.abs(value - target) < precision && Math.abs(velocity) < precision * 10;
+        return done
+          ? { state: { value: target, velocity: 0 }, done: true }
+          : { state: { value, velocity }, done: false };
+      }
+    };
+
+    class MiniGauge {
+      constructor(containerId, config) {
+        this.container = document.getElementById(containerId);
+        this.config = Object.assign({
+          min: 0,
+          max: 100,
+          startAngle: 40,
+          endAngle: 320,
+          radius: 140,
+          padding: 24,
+          unit: "%",
+          color: "#fafafa",
+          variant: "arc"
+        }, config);
+        this.target = 0;
+        this.spring = { value: 0, velocity: 0 };
+        this.physics = GaugeMath.springPhysics(0.5, 0.12);
+        this.animFrame = null;
+        this.lastTime = performance.now();
+        this.render();
+      }
+
+      setValue(val) {
+        this.target = GaugeMath.clamp(Number(val) || 0, this.config.min, this.config.max);
+        if (!this.animFrame) {
+          this.lastTime = performance.now();
+          const tick = (now) => {
+            const dt = Math.max(0.001, (now - this.lastTime) / 1000);
+            this.lastTime = now;
+            const span = Math.abs(this.config.max - this.config.min) || 100;
+            const res = GaugeMath.stepSpring(this.spring, this.target, this.physics, dt, span * 1e-4);
+            this.spring = res.state;
+            this.render();
+            if (!res.done) {
+              this.animFrame = requestAnimationFrame(tick);
+            } else {
+              this.animFrame = null;
+            }
+          };
+          this.animFrame = requestAnimationFrame(tick);
+        }
+      }
+
+      render() {
+        if (!this.container) return;
+        const { min, max, startAngle, endAngle, radius, padding, color, unit, variant } = this.config;
+        const val = this.spring.value;
+        const angleOf = (v) => GaugeMath.valueToAngle(v, min, max, startAngle, endAngle);
+        const curAngle = angleOf(val);
+        const half = radius + padding;
+
+        let paths = "";
+        if (variant === "tick-fill") {
+          const ticks = GaugeMath.stepValues(min, max, 16);
+          ticks.forEach((tv) => {
+            const isLit = tv <= val + 0.001;
+            const len = isLit ? 22 : 14;
+            const ang = angleOf(tv);
+            const p1 = GaugeMath.polar(radius - len / 2, ang);
+            const p2 = GaugeMath.polar(radius + len / 2, ang);
+            paths += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${isLit ? color : 'currentColor'}" stroke-opacity="${isLit ? 1 : 0.18}" stroke-width="4" stroke-linecap="butt" />`;
+          });
+        } else {
+          paths += `<path d="${GaugeMath.arcPath(radius, startAngle, endAngle)}" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="16" stroke-linecap="butt" />`;
+          if (curAngle > startAngle + 0.1) {
+            paths += `<path d="${GaugeMath.arcPath(radius, startAngle, curAngle)}" fill="none" stroke="${color}" stroke-width="16" stroke-linecap="butt" />`;
+          }
+        }
+
+        // Value text
+        paths += `<text x="0" y="4" fill="currentColor" font-size="52" font-weight="700" text-anchor="middle" dominant-baseline="central" class="font-mono tabular-nums">${Math.round(val)}${unit}</text>`;
+
+        this.container.innerHTML = `<svg viewBox="${-half} ${-half} ${2 * half} ${2 * half}" class="w-full h-full overflow-visible">${paths}</svg>`;
+      }
+    }
+
+    const miniGauges = {};
+    let widgetViewMode = 'graphical';
+
+    function setWidgetMode(mode) {
+      widgetViewMode = mode;
+      const isG = mode === 'graphical';
+      const btnG = document.getElementById('w-btn-g');
+      const btnT = document.getElementById('w-btn-t');
+      const gView = document.getElementById('w-gauges-view');
+      const tView = document.getElementById('w-text-view');
+
+      if (isG) {
+        btnG.style.background = 'hsl(var(--background))';
+        btnG.style.color = 'hsl(var(--foreground))';
+        btnT.style.background = 'transparent';
+        btnT.style.color = 'hsl(var(--muted-foreground))';
+        gView.style.display = 'grid';
+        tView.style.display = 'none';
+      } else {
+        btnT.style.background = 'hsl(var(--background))';
+        btnT.style.color = 'hsl(var(--foreground))';
+        btnG.style.background = 'transparent';
+        btnG.style.color = 'hsl(var(--muted-foreground))';
+        gView.style.display = 'none';
+        tView.style.display = 'grid';
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      miniGauges.gpu = new MiniGauge("w-gauge-gpu", { min: 0, max: 100, unit: "°", color: "#f59e0b", variant: "arc" });
+      miniGauges.cpu = new MiniGauge("w-gauge-cpu", { min: 0, max: 100, unit: "%", color: "#22d3ee", variant: "tick-fill" });
+      miniGauges.ram = new MiniGauge("w-gauge-ram", { min: 0, max: 100, unit: "%", color: "#a855f7", variant: "arc" });
+      miniGauges.bat = new MiniGauge("w-gauge-bat", { min: 0, max: 100, unit: "%", color: "#10b981", variant: "arc" });
+      syncVitals();
+      setInterval(syncVitals, 3000);
+    });
+
+    async function syncVitals() {
+      try {
+        const res = await fetch('http://localhost:8080/api/status');
+        if (!res.ok) return;
+        const d = await res.json();
+        if (d.telemetry) {
+          const t = d.telemetry;
+          if (miniGauges.gpu && t.gpu) miniGauges.gpu.setValue(t.gpu.temp_c || 0);
+          if (miniGauges.cpu) miniGauges.cpu.setValue(t.cpu_percent || 0);
+          if (miniGauges.ram) miniGauges.ram.setValue(t.ram_percent || 0);
+          if (miniGauges.bat) miniGauges.bat.setValue(t.battery ? t.battery.percent : 100);
+
+          // Sync text cards
+          const elG = document.getElementById('v-gpu');
+          if (elG && t.gpu) elG.innerText = `GPU: ${t.gpu.temp_c}°C (${t.gpu.utilization_pct}%)`;
+          const elC = document.getElementById('v-cpu');
+          if (elC) elC.innerText = `CPU: ${t.cpu_percent}% (${t.cpu_temp_c || '--'}°C)`;
+          const elR = document.getElementById('v-ram');
+          if (elR) elR.innerText = `RAM: ${t.ram_percent}%`;
+          const elB = document.getElementById('v-bat');
+          if (elB) elB.innerText = `BAT: ${t.battery ? t.battery.percent : 100}%`;
+        }
+      } catch (e) {}
+    }
+
+    const FlickerDot = (function() {
+      const RADAR = [
+        [false,true,true,true,true,true,false,false,false,true,true,true,false,false,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        [false,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        [false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,true,true,false,false,false,true,true,true,true,false,false,false,false,false,true,true,false,false,false,false,false,false,true,false,false,false,false,false,false,false],
+        [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,false,true,true,true],
+        [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,true,true,true,false,false,false,true,true,true,true,true,false],
+        [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,false],
+        [false,false,false,false,false,false,false,true,false,false,false,false,false,false,true,true,false,false,false,false,false,true,true,true,true,false,false,false,true,true,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        [true,true,true,false,false,false,false,true,true,true,false,false,false,false,true,true,true,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false]
+      ];
+
+      function render(opts = {}) {
+        const grids = opts.grids || RADAR;
+        const size = opts.size || 20;
+        const variant = opts.variant || '7x7';
+        const onColor = opts.onColor || 'hsl(var(--primary))';
+        const offColor = opts.offColor || 'hsl(var(--muted))';
+        const speed = opts.speed || 1.2;
+
+        const small = variant === '5x5';
+        const FRAME_INTERVAL = 150;
+        const DOT_R = 2;
+        const PITCH = 6;
+        const OFFSET = 3;
+        const COLS = small ? 5 : 7;
+        const VIEWBOX = small ? 30 : 42;
+        const SAFE_AREA_INDICES = [];
+        for (let r = 1; r <= 5; r++) {
+          for (let c = 1; c <= 5; c++) SAFE_AREA_INDICES.push(r * 7 + c);
+        }
+        const frames = small ? grids.map(f => SAFE_AREA_INDICES.map(i => f[i])) : grids;
+        const n = frames.length;
+        const totalDots = frames[0].length;
+        const dur = (n * FRAME_INTERVAL / 1000 / (speed > 0 ? speed : 1)).toFixed(3) + 's';
+        const uid = 'fk' + Math.random().toString(36).substring(2, 8);
+
+        const dotPatterns = Array.from({ length: totalDots }, (_, i) => frames.map(f => f[i]));
+        const uniquePatterns = new Map();
+        for (const pattern of dotPatterns) {
+          const key = pattern.map(v => v ? '1' : '0').join('');
+          if (pattern.some(v => v) && !pattern.every(v => v) && !uniquePatterns.has(key)) {
+            uniquePatterns.set(key, pattern);
+          }
+        }
+
+        function buildStops(pattern, n) {
+          const stops = ['0% { opacity: ' + (pattern[0] ? 1 : 0) + '; }'];
+          for (let i = 1; i < n; i++) {
+            const pct = (i * 100 / n).toFixed(2);
+            if (pattern[i] !== pattern[i - 1]) {
+              stops.push((pct - 0.01).toFixed(2) + '% { opacity: ' + (pattern[i - 1] ? 1 : 0) + '; }');
+              stops.push(pct + '% { opacity: ' + (pattern[i] ? 1 : 0) + '; }');
+            }
+          }
+          stops.push('100% { opacity: ' + (pattern[n - 1] ? 1 : 0) + '; }');
+          return stops.join(' ');
+        }
+
+        let keyframeCss = '';
+        for (const [key, pattern] of uniquePatterns.entries()) {
+          keyframeCss += '@keyframes ' + uid + '_' + key + ' { ' + buildStops(pattern, n) + ' } ';
+        }
+
+        const css = '[data-fk="' + uid + '"] circle { fill: var(--off); } [data-fk="' + uid + '"] circle.on { fill: var(--on); } @media (prefers-reduced-motion: reduce) { [data-fk="' + uid + '"] circle { animation: none !important; } } ' + keyframeCss;
+
+        let baseCircles = '';
+        let animCircles = '';
+        for (let i = 0; i < totalDots; i++) {
+          const cx = (i % COLS) * PITCH + OFFSET;
+          const cy = Math.floor(i / COLS) * PITCH + OFFSET;
+          const pattern = dotPatterns[i];
+          const key = pattern.map(v => v ? '1' : '0').join('');
+          const neverOn = pattern.every(v => !v);
+          const alwaysOn = pattern.every(v => v);
+          baseCircles += '<circle cx="' + cx + '" cy="' + cy + '" r="' + DOT_R + '" />';
+          if (alwaysOn) {
+            animCircles += '<circle class="on" cx="' + cx + '" cy="' + cy + '" r="' + DOT_R + '" />';
+          } else if (!neverOn) {
+            animCircles += '<circle class="on" cx="' + cx + '" cy="' + cy + '" r="' + DOT_R + '" opacity="' + (pattern[0] ? 1 : 0) + '" style="animation: ' + uid + '_' + key + ' var(--dur) linear infinite;" />';
+          }
+        }
+
+        return '<svg data-fk="' + uid + '" width="' + size + '" height="' + size + '" viewBox="0 0 ' + VIEWBOX + ' ' + VIEWBOX + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="status" aria-label="Loading" style="--on: ' + onColor + '; --off: ' + offColor + '; --dur: ' + dur + '; display: inline-block; vertical-align: middle; flex-shrink: 0;"><style>' + css + '</style>' + baseCircles + animCircles + '</svg>';
+      }
+
+      return { render, RADAR };
+    })();
+
+    async function sendCmd() {
+      const val = document.getElementById('w-input').value.trim();
+      if (!val) return;
+      document.getElementById('w-input').value = '';
+      await cmd(val);
+    }
+    async function cmd(text) {
+      document.getElementById('w-spinner').innerHTML = FlickerDot.render({ size: 18, variant: '5x5' });
+      document.getElementById('w-feedback-text').innerText = 'Executing "' + text + '"...';
+      try {
+        const res = await fetch('http://localhost:8080/api/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: text, tts: false })
+        });
+        const d = await res.json();
+        document.getElementById('w-spinner').innerHTML = '';
+        document.getElementById('w-feedback-text').innerText = `[${d.decision.action} -> ${d.decision.target}] ${d.feedback} (${d.latency_ms}ms)`;
+        syncVitals();
+      } catch (e) {
+        document.getElementById('w-spinner').innerHTML = '';
+        document.getElementById('w-feedback-text').innerText = 'Error: ' + e;
+      }
+    }
+    async function trigger(action) {
+      document.getElementById('w-spinner').innerHTML = FlickerDot.render({ size: 18, variant: '5x5' });
+      document.getElementById('w-feedback-text').innerText = 'Executing ' + action + '...';
+      try {
+        const res = await fetch('http://localhost:8080/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action })
+        });
+        const d = await res.json();
+        document.getElementById('w-spinner').innerHTML = '';
+        document.getElementById('w-feedback-text').innerText = `${d.feedback} (${d.latency_ms}ms)`;
+        syncVitals();
+      } catch (e) {
+        document.getElementById('w-spinner').innerHTML = '';
+        document.getElementById('w-feedback-text').innerText = 'Action error: ' + e;
+      }
+    }
+    document.getElementById('w-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendCmd();
+    });
+  </script>
+</body>
+</html>

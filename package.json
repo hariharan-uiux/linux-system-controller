@@ -1,0 +1,25 @@
+{
+  "name": "linux-system-controller",
+  "version": "1.0.0",
+  "description": "Local Linux system controller and hardware telemetry dashboard for PipeWire volume, display brightness, screen resolution, power profiles, media, and system vitals.",
+  "main": "gui_server.py",
+  "scripts": {
+    "start": "./run.sh --gui",
+    "test": "./run.sh --test"
+  },
+  "keywords": [
+    "linux",
+    "system-controller",
+    "hardware-telemetry",
+    "pipewire",
+    "wayland",
+    "gnome",
+    "dashboard"
+  ],
+  "author": "HariHaran.D",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "flicker-dot": "^0.2.0"
+  }
+}
