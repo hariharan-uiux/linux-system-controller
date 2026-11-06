@@ -1168,7 +1168,7 @@ SHADCN_HTML_PAGE = """<!DOCTYPE html>
       <!-- Explanation -->
       <div class="text-xs text-muted-foreground space-y-2 leading-relaxed">
         <p>
-          On your <strong class="text-foreground font-mono">Acer Predator PHN16-72</strong>, keyboard lighting is driven directly by the Embedded Controller (EC) via ACPI WMI (<code class="bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">\_SB.PC00.WMID.WMBH</code>).
+          On your <strong class="text-foreground font-mono">Acer Predator PHN16-72</strong>, keyboard lighting is driven directly by the Embedded Controller (EC) via ACPI WMI (<code class="bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">\\_SB.PC00.WMID.WMBH</code>).
         </p>
         <p>
           Because <strong class="text-foreground">Secure Boot</strong> is active, Linux blocks the built <code class="bg-muted px-1 py-0.5 font-mono text-[11px] text-foreground">acpi_call</code> driver until its signing key is authorized in your UEFI bootloader.
@@ -2129,7 +2129,9 @@ SHADCN_HTML_PAGE = """<!DOCTYPE html>
 
         // Wake State
         isWakeEnabled = !!data.wake_listening;
-        updateWakeUI(isWakeEnabled);
+        if (typeof updateWakeUI === "function") {
+          updateWakeUI(isWakeEnabled);
+        }
 
         // Activity Feed
         if (data.recent_events) renderEvents(data.recent_events);
@@ -2150,6 +2152,20 @@ SHADCN_HTML_PAGE = """<!DOCTYPE html>
         document.getElementById("p-bal").className = "inline-flex items-center justify-center border border-primary bg-primary text-primary-foreground py-1 text-xs font-mono font-medium transition-colors";
       } else {
         document.getElementById("p-save").className = "inline-flex items-center justify-center border border-primary bg-primary text-primary-foreground py-1 text-xs font-mono font-medium transition-colors";
+      }
+    }
+
+    function updateWakeUI(enabled) {
+      isWakeEnabled = !!enabled;
+      const wakeIndicator = document.getElementById("wake-indicator") || document.getElementById("wake-status-badge") || document.getElementById("wake-btn");
+      if (wakeIndicator) {
+        if (wakeIndicator.tagName === "BUTTON") {
+          wakeIndicator.className = enabled
+            ? "inline-flex items-center justify-center border border-primary bg-primary text-primary-foreground py-2 text-xs font-medium gap-1.5 transition-colors"
+            : "inline-flex items-center justify-center border border-border bg-background hover:bg-accent text-foreground py-2 text-xs font-medium gap-1.5 transition-colors";
+        } else {
+          wakeIndicator.innerText = enabled ? "Wake: ON" : "Wake: OFF";
+        }
       }
     }
 
@@ -2534,37 +2550,45 @@ class VoiceAgentHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-    def _send_json(self, data, status=200):
+    def _send_json(self, data, status=200, head_only=False):
         body = json.dumps(data).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
-        self.wfile.write(body)
+        if not head_only:
+            self.wfile.write(body)
 
-    def _send_html(self, html_str, status=200):
+    def _send_html(self, html_str, status=200, head_only=False):
         body = html_str.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
-        self.wfile.write(body)
+        if not head_only:
+            self.wfile.write(body)
 
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+    def do_HEAD(self):
+        self._handle_get(head_only=True)
+
     def do_GET(self):
+        self._handle_get(head_only=False)
+
+    def _handle_get(self, head_only=False):
         parsed = urlparse(self.path)
         path = parsed.path
 
         if path in ("/", "/index.html"):
-            self._send_html(SHADCN_HTML_PAGE)
+            self._send_html(SHADCN_HTML_PAGE, head_only=head_only)
             return
 
         elif path == "/api/status":
@@ -2582,13 +2606,13 @@ class VoiceAgentHandler(BaseHTTPRequestHandler):
                 "telemetry": telemetry,
                 "media": media,
                 "recent_events": events
-            })
+            }, head_only=head_only)
             return
 
         elif path == "/api/history":
             with state_lock:
                 events = list(history_log)
-            self._send_json({"events": events})
+            self._send_json({"events": events}, head_only=head_only)
             return
 
         else:
@@ -2876,6 +2900,8 @@ class VoiceAgentHandler(BaseHTTPRequestHandler):
 
         else:
             self.send_error(404, "Endpoint Not Found")
+
+DashboardHandler = VoiceAgentHandler
 
 def run_server(port=SERVER_PORT):
     server = ThreadingHTTPServer(("0.0.0.0", port), VoiceAgentHandler)

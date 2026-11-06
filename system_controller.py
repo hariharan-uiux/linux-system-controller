@@ -1678,44 +1678,99 @@ class SystemController:
         return False, "Failed to set keyboard repeat rate."
 
     def get_clipboard_text(self) -> Tuple[bool, str]:
+        # 1. Wayland wl-paste
         try:
             res = subprocess.run(["wl-paste"], env=self.env, capture_output=True, text=True)
             if res.returncode == 0:
                 txt = res.stdout.strip()
                 preview = (txt[:80] + "...") if len(txt) > 80 else txt
                 return True, f"Clipboard: \"{preview}\""
-            res2 = subprocess.run(["xclip", "-o", "-selection", "clipboard"], env=self.env, capture_output=True, text=True)
-            if res2.returncode == 0:
-                txt = res2.stdout.strip()
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 2. X11 xclip
+        try:
+            res = subprocess.run(["xclip", "-o", "-selection", "clipboard"], env=self.env, capture_output=True, text=True)
+            if res.returncode == 0:
+                txt = res.stdout.strip()
                 preview = (txt[:80] + "...") if len(txt) > 80 else txt
                 return True, f"Clipboard: \"{preview}\""
-            return False, "Clipboard is empty or inaccessible."
-        except Exception as e:
-            return False, f"Failed to read clipboard: {str(e)}"
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 3. X11 xsel
+        try:
+            res = subprocess.run(["xsel", "-b", "-o"], env=self.env, capture_output=True, text=True)
+            if res.returncode == 0:
+                txt = res.stdout.strip()
+                preview = (txt[:80] + "...") if len(txt) > 80 else txt
+                return True, f"Clipboard: \"{preview}\""
+        except (FileNotFoundError, Exception):
+            pass
+
+        return False, "Clipboard is empty or inaccessible."
 
     def set_clipboard_text(self, text: str) -> Tuple[bool, str]:
+        # 1. Wayland wl-copy
         try:
             proc = subprocess.Popen(["wl-copy"], env=self.env, stdin=subprocess.PIPE, text=True)
             proc.communicate(input=text)
-            return proc.returncode == 0, f"Copied to clipboard: \"{text[:40]}\""
-        except Exception:
-            try:
-                proc2 = subprocess.Popen(["xclip", "-selection", "clipboard"], env=self.env, stdin=subprocess.PIPE, text=True)
-                proc2.communicate(input=text)
-                return proc2.returncode == 0, f"Copied to clipboard: \"{text[:40]}\""
-            except Exception as e:
-                return False, f"Failed to set clipboard: {str(e)}"
+            if proc.returncode == 0:
+                return True, f"Copied to clipboard: \"{text[:40]}\""
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 2. X11 xclip
+        try:
+            proc = subprocess.Popen(["xclip", "-selection", "clipboard"], env=self.env, stdin=subprocess.PIPE, text=True)
+            proc.communicate(input=text)
+            if proc.returncode == 0:
+                return True, f"Copied to clipboard: \"{text[:40]}\""
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 3. X11 xsel
+        try:
+            proc = subprocess.Popen(["xsel", "-b", "-i"], env=self.env, stdin=subprocess.PIPE, text=True)
+            proc.communicate(input=text)
+            if proc.returncode == 0:
+                return True, f"Copied to clipboard: \"{text[:40]}\""
+        except (FileNotFoundError, Exception):
+            pass
+
+        return False, "Failed to set clipboard."
 
     def clear_clipboard(self) -> Tuple[bool, str]:
+        # 1. Wayland wl-copy
         try:
-            subprocess.run(["wl-copy", "-c"], env=self.env)
-            return True, "Clipboard cleared."
-        except Exception:
-            return False, "Failed to clear clipboard."
+            res = subprocess.run(["wl-copy", "-c"], env=self.env, capture_output=True)
+            if res.returncode == 0:
+                return True, "Clipboard cleared."
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 2. X11 xclip
+        try:
+            proc = subprocess.Popen(["xclip", "-selection", "clipboard"], env=self.env, stdin=subprocess.PIPE, text=True)
+            proc.communicate(input="")
+            if proc.returncode == 0:
+                return True, "Clipboard cleared."
+        except (FileNotFoundError, Exception):
+            pass
+
+        # 3. X11 xsel
+        try:
+            res = subprocess.run(["xsel", "-b", "-c"], env=self.env, capture_output=True)
+            if res.returncode == 0:
+                return True, "Clipboard cleared."
+        except (FileNotFoundError, Exception):
+            pass
+
+        return False, "Failed to clear clipboard."
 
     def take_screenshot(self, filename: str = None) -> Tuple[bool, str, str]:
         """
-        Take a screenshot using XDG Desktop Portal (works on Wayland with permission handling).
+        Take a screenshot using XDG Desktop Portal, grim, scrot, xwd, or ffmpeg fallback.
         Returns: (success, message, file_path)
         """
         try:
@@ -1724,40 +1779,79 @@ class SystemController:
             fname = filename or f"screenshot_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
             dest = os.path.join(shots_dir, fname)
             
-            # Use XDG Desktop Portal Screenshot API (works on Wayland)
-            res = subprocess.run([
-                "gdbus", "call", "--session",
-                "--dest", "org.freedesktop.portal.Desktop",
-                "--object-path", "/org/freedesktop/portal/desktop",
-                "--method", "org.freedesktop.portal.Screenshot.Screenshot",
-                "", '{"interactive": <false>}'
-            ], env=self.env, capture_output=True, text=True)
-            
-            if res.returncode == 0:
-                # Portal saves to Pictures/Screenshots automatically
-                # Wait a moment and find the newest file
-                time.sleep(0.5)
-                newest = None
-                newest_time = 0
-                for f in os.listdir(shots_dir):
-                    if f.startswith("screenshot_") or f.startswith("Screenshot"):
-                        full = os.path.join(shots_dir, f)
-                        mtime = os.path.getmtime(full)
-                        if mtime > newest_time:
-                            newest_time = mtime
-                            newest = full
+            # 1. Use XDG Desktop Portal Screenshot API (works on Wayland with portal daemon)
+            try:
+                res = subprocess.run([
+                    "gdbus", "call", "--session",
+                    "--dest", "org.freedesktop.portal.Desktop",
+                    "--object-path", "/org/freedesktop/portal/desktop",
+                    "--method", "org.freedesktop.portal.Screenshot.Screenshot",
+                    "", '{"interactive": <false>}'
+                ], env=self.env, capture_output=True, text=True)
                 
-                if newest:
-                    return True, f"Screenshot saved to {newest}", newest
-                return True, f"Screenshot captured to {shots_dir}", shots_dir
-            
-            # Fallback to X11 if portal fails
-            dest = os.path.join(shots_dir, fname)
-            cmd = ["ffmpeg", "-f", "x11grab", "-video_size", "2560x1600", "-i", ":0", "-vframes", "1", "-update", "1", dest, "-y"]
+                if res.returncode == 0:
+                    time.sleep(0.5)
+                    newest = None
+                    newest_time = 0
+                    for f in os.listdir(shots_dir):
+                        if f.startswith("screenshot_") or f.startswith("Screenshot"):
+                            full = os.path.join(shots_dir, f)
+                            mtime = os.path.getmtime(full)
+                            if mtime > newest_time:
+                                newest_time = mtime
+                                newest = full
+                    
+                    if newest:
+                        return True, f"Screenshot saved to {newest}", newest
+                    return True, f"Screenshot captured to {shots_dir}", shots_dir
+            except (FileNotFoundError, Exception):
+                pass
+
+            # 2. Try grim on Wayland
+            if os.environ.get("WAYLAND_DISPLAY") or self.env.get("WAYLAND_DISPLAY"):
+                try:
+                    res_grim = subprocess.run(["grim", dest], env=self.env, capture_output=True, text=True)
+                    if res_grim.returncode == 0 and os.path.exists(dest):
+                        return True, f"Screenshot saved to {dest} ({round(os.path.getsize(dest)/1024, 1)} KB).", dest
+                except (FileNotFoundError, Exception):
+                    pass
+
+            # 3. Try scrot (common X11 screenshot tool)
+            try:
+                res_scrot = subprocess.run(["scrot", dest], env=self.env, capture_output=True, text=True)
+                if res_scrot.returncode == 0 and os.path.exists(dest):
+                    return True, f"Screenshot saved to {dest} ({round(os.path.getsize(dest)/1024, 1)} KB).", dest
+            except (FileNotFoundError, Exception):
+                pass
+
+            # 4. Try xwd + ffmpeg
+            try:
+                display_env = self.env.get("DISPLAY") or os.environ.get("DISPLAY", ":0")
+                xwd_file = dest.rsplit(".", 1)[0] + ".xwd"
+                res_xwd = subprocess.run(["xwd", "-root", "-display", display_env, "-out", xwd_file], env=self.env, capture_output=True)
+                if res_xwd.returncode == 0 and os.path.exists(xwd_file):
+                    subprocess.run(["ffmpeg", "-i", xwd_file, dest, "-y"], env=self.env, capture_output=True)
+                    try:
+                        os.remove(xwd_file)
+                    except OSError:
+                        pass
+                    if os.path.exists(dest):
+                        return True, f"Screenshot saved to {dest} ({round(os.path.getsize(dest)/1024, 1)} KB).", dest
+            except (FileNotFoundError, Exception):
+                pass
+
+            # 5. Fallback to ffmpeg x11grab with dynamic display and resolution
+            display_str = self.env.get("DISPLAY") or os.environ.get("DISPLAY", ":0")
+            display_info = self.get_display_info()
+            video_size = display_info.get("current_resolution", "1920x1080")
+            if not re.match(r"^\d+x\d+$", video_size) or video_size == "0x0":
+                video_size = "1920x1080"
+
+            cmd = ["ffmpeg", "-f", "x11grab", "-video_size", video_size, "-i", display_str, "-vframes", "1", "-update", "1", dest, "-y"]
             fallback_res = subprocess.run(cmd, env=self.env, capture_output=True, text=True)
             if fallback_res.returncode == 0 and os.path.exists(dest):
                 return True, f"Screenshot saved to {dest} ({round(os.path.getsize(dest)/1024, 1)} KB).", dest
-            return False, f"Screenshot failed: {res.stderr.strip()[:100]}", ""
+            return False, f"Screenshot failed on display {display_str}", ""
         except Exception as e:
             return False, f"Screenshot error: {str(e)}", ""
 
