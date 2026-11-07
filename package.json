@@ -1,6 +1,6 @@
 {
   "name": "linux-system-controller",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local Linux system controller and hardware telemetry dashboard for PipeWire volume, display brightness, screen resolution, power profiles, media, and system vitals.",
   "main": "gui_server.py",
   "scripts": {
